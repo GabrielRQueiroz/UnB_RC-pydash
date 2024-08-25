@@ -21,9 +21,11 @@ class R2AFixed(IR2A):
     def __init__(self, id):
         IR2A.__init__(self, id)
         self.parsed_mpd = ''
+        self.request_time = 0
         self.qi = []
 
     def handle_xml_request(self, msg):
+        self.request_time = time.perf_counter()
         self.send_down(msg)
 
     def handle_xml_response(self, msg):
