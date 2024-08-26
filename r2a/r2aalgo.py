@@ -20,8 +20,8 @@ class R2AAlgo(IR2A):
         IR2A.__init__(self, id)
         self.parsed_mpd = ''
         
-        self.segment_throughouts = []
-        self.estimated_throughouts = []
+        self.segment_throughputs = []
+        self.estimated_throughputs = []
         
         self.delta = 0
         self.deviation = 0
@@ -29,7 +29,7 @@ class R2AAlgo(IR2A):
         self.P0 = 0.2
         
         self.bitrate_constraint = 0 
-        self.mu = 0.25
+        self.mu = 0.4
 
         self.request_time = 0
         self.response_time = 0
@@ -41,36 +41,51 @@ class R2AAlgo(IR2A):
         self.overall_quality = 0
 
     def handle_xml_request(self, msg):
+        self.request_time = time.perf_counter()
         self.send_down(msg)
 
     def handle_xml_response(self, msg):
         self.parsed_mpd = parse_mpd(msg.get_payload())
         self.qi = self.parsed_mpd.get_qi()
         
-        self.send_up(msg)        
+        self.response_time = time.perf_counter()
+        measured_throughput = msg.get_bit_length() / (self.response_time - self.request_time)
+        self.segment_throughputs.append(measured_throughput)
+        
+        self.estimated_throughputs.append(self.qi[0])
+        
+        self.send_up(msg)
 
-    def handle_segment_size_request(self, msg):        
+    def handle_segment_size_request(self, msg):
         self.request_time = time.perf_counter()
         
-        msg.add_quality_id(self.qi[0])
+        selected = self.qi[0]
+        arr = np.asarray(self.qi)
+        arr = arr[np.abs(arr) < self.bitrate_constraint]
+        
+        if np.size(arr) > 0:
+            selected = arr[-1]
+
+        msg.add_quality_id(selected)
         self.send_down(msg)
 
-    def handle_segment_size_response(self, msg):        
-        i = msg.get_segment_id() - 1
+    def handle_segment_size_response(self, msg):
+        i = msg.get_segment_id()
         
         self.response_time = time.perf_counter()
-        self.segment_throughouts.append(self.response_time - self.request_time)
+        measured_throughput = msg.get_bit_length() / (self.response_time - self.request_time)
+        self.segment_throughputs.append(measured_throughput)
         
-        if i == 0 or i == 1:
-            self.estimated_throughouts.append(self.segment_throughouts[i-1])
+        if i == 1 or i == 2:
+            self.estimated_throughputs.append(self.segment_throughputs[i-1])
         else:
-            estimated_throughout = (1 - self.delta) * self.estimated_throughouts[i-2] + self.delta * self.segment_throughouts[i-1]
-            self.estimated_throughouts.append(estimated_throughout)
+            estimated_throughout = (1 - self.delta) * self.estimated_throughputs[i-2] + self.delta * self.segment_throughputs[i-1]
+            self.estimated_throughputs.append(estimated_throughout)
         
-        self.deviation = np.abs(self.segment_throughouts[i] - self.estimated_throughouts[i]) / self.estimated_throughouts[i] 
+        self.deviation = np.abs(self.segment_throughputs[i] - self.estimated_throughputs[i]) / self.estimated_throughputs[i] 
         self.delta = 1 / (1 + np.exp(-self.k * (self.deviation - self.P0)))
         
-        self.bitrate_constraint = (1 - self.mu) * self.estimated_throughouts[i]
+        self.bitrate_constraint = (1 - self.mu) * self.estimated_throughputs[i]
         
         self.send_up(msg)
 

@@ -14,6 +14,7 @@ In this algorithm the quality choice is always the same.
 
 from player.parser import *
 from r2a.ir2a import IR2A
+import time
 
 
 class R2AFixed(IR2A):
