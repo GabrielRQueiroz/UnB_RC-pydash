@@ -11,6 +11,7 @@ is made inside of handle_segment_size_request(), before sending the message down
 In this algorithm the quality choice is always the same.
 """
 import numpy as np
+import scipy
 from player.parser import *
 from r2a.ir2a import IR2A
 import time
@@ -26,19 +27,19 @@ class R2AAlgo(IR2A):
         self.delta = 0
         self.deviation = 0
         self.k = 21
-        self.P0 = 0.2
+        self.P0 = 0.1
         
         self.bitrate_constraint = 0 
-        self.mu = 0.4
+        self.mu = 0.5
 
         self.request_time = 0
         self.response_time = 0
         
         self.qi = []
-        self.vi = 0
-        self.au = 0
-        self.av = 0
-        self.overall_quality = 0
+        # self.vi = 0
+        # self.au = 0
+        # self.av = 0
+        # self.overall_quality = 0
 
     def handle_xml_request(self, msg):
         self.request_time = time.perf_counter()
@@ -94,6 +95,21 @@ class R2AAlgo(IR2A):
 
     def finalization(self):
         pass
+        # playback_qi = np.array(self.whiteboard.get_playback_qi())
+        # playback_pauses = np.array(self.whiteboard.get_playback_pauses())
+        # playback_buffer_size = np.array(self.whiteboard.get_playback_buffer_size())
+        
+        # statistics = [
+        #     f'Playback history >>>>>>>>>>>>\n{self.whiteboard.get_playback_history()}\n\n',
+        #     f'Playback segment size time >>>>>>>>>>>>\n{self.whiteboard.get_playback_segment_size_time_at_buffer()}\n\n',
+        #     f'Buffer >>>>>>>>>>>>\n{self.whiteboard.get_buffer()}\n\n',
+        #     f'Playback QI >>>>>>>>>>>>\n{self.whiteboard.get_playback_qi()}\n\n',
+        #     f'Playback pauses >>>>>>>>>>>>\n{self.whiteboard.get_playback_pauses()}\n\n',
+        #     f'Playback buffer size >>>>>>>>>>>>\n{self.whiteboard.get_playback_buffer_size()}\n\n'
+        # ]
+        # with open(f'{time.ctime(time.time())}', 'w') as f:
+        #     f.writelines(statistics)
+                
 
 # print("mpd info            >>>>>>", self.parsed_mpd.get_mpd_info())
 # print("period info         >>>>>>", self.parsed_mpd.get_period_info())
