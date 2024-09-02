@@ -27,19 +27,15 @@ class R2AAlgo(IR2A):
         self.delta = 0
         self.deviation = 0
         self.k = 21
-        self.P0 = 0.1
+        self.P0 = 0.2
         
         self.bitrate_constraint = 0 
-        self.mu = 0.5
+        self.mu = 0.1
 
         self.request_time = 0
         self.response_time = 0
         
         self.qi = []
-        # self.vi = 0
-        # self.au = 0
-        # self.av = 0
-        # self.overall_quality = 0
 
     def handle_xml_request(self, msg):
         self.request_time = time.perf_counter()
@@ -50,6 +46,8 @@ class R2AAlgo(IR2A):
         self.qi = self.parsed_mpd.get_qi()
         
         self.response_time = time.perf_counter()
+
+        # OBTENÇÃO DA VAZÃO
         measured_throughput = msg.get_bit_length() / (self.response_time - self.request_time)
         self.segment_throughputs.append(measured_throughput)
         
@@ -62,6 +60,8 @@ class R2AAlgo(IR2A):
         
         selected = self.qi[0]
         arr = np.asarray(self.qi)
+        
+        # OBTEM MELHOR ALTERNATIVA MENOR QUE O LIMITE DE BITRATE
         arr = arr[np.abs(arr) < self.bitrate_constraint]
         
         if np.size(arr) > 0:
@@ -71,18 +71,23 @@ class R2AAlgo(IR2A):
         self.send_down(msg)
 
     def handle_segment_size_response(self, msg):
+        # ÍNDICE DO SEGMENTO ATUAL
         i = msg.get_segment_id()
         
         self.response_time = time.perf_counter()
+        
+        # OBTENÇÃO DA VAZÃO DO SEGMENTO ATUAL
         measured_throughput = msg.get_bit_length() / (self.response_time - self.request_time)
         self.segment_throughputs.append(measured_throughput)
         
+        # OBTENÇÃO DA VAZÃO ESTIMADO
         if i == 1 or i == 2:
             self.estimated_throughputs.append(self.segment_throughputs[i-1])
         else:
             estimated_throughout = (1 - self.delta) * self.estimated_throughputs[i-2] + self.delta * self.segment_throughputs[i-1]
             self.estimated_throughputs.append(estimated_throughout)
         
+        # CÁLCULOS DE p E ∂
         self.deviation = np.abs(self.segment_throughputs[i] - self.estimated_throughputs[i]) / self.estimated_throughputs[i] 
         self.delta = 1 / (1 + np.exp(-self.k * (self.deviation - self.P0)))
         
