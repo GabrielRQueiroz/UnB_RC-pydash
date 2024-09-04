@@ -11,7 +11,6 @@ is made inside of handle_segment_size_request(), before sending the message down
 In this algorithm the quality choice is always the same.
 """
 import numpy as np
-import scipy
 from player.parser import *
 from r2a.ir2a import IR2A
 import time
@@ -30,7 +29,7 @@ class R2AAlgo(IR2A):
         self.P0 = 0.2
         
         self.bitrate_constraint = 0 
-        self.mu = 0.1
+        self.mu = 0.25
 
         self.request_time = 0
         self.response_time = 0
@@ -78,18 +77,18 @@ class R2AAlgo(IR2A):
         
         # OBTENÇÃO DA VAZÃO DO SEGMENTO ATUAL
         measured_throughput = msg.get_bit_length() / (self.response_time - self.request_time)
-        self.segment_throughputs.append(measured_throughput)
+        self.segment_throughputs.append(measured_throughput) 
+             
+        # CÁLCULOS DE p E ∂
+        self.deviation = np.abs(self.segment_throughputs[i] - self.estimated_throughputs[i-1]) / self.estimated_throughputs[i-1] 
+        self.delta = 1 / (1 + np.exp(-self.k * (self.deviation - self.P0)))
         
         # OBTENÇÃO DA VAZÃO ESTIMADO
         if i == 1 or i == 2:
-            self.estimated_throughputs.append(self.segment_throughputs[i-1])
+            self.estimated_throughputs.append(self.segment_throughputs[i])
         else:
-            estimated_throughout = (1 - self.delta) * self.estimated_throughputs[i-2] + self.delta * self.segment_throughputs[i-1]
+            estimated_throughout = (1 - self.delta) * self.estimated_throughputs[i-1] + self.delta * self.segment_throughputs[i]
             self.estimated_throughputs.append(estimated_throughout)
-        
-        # CÁLCULOS DE p E ∂
-        self.deviation = np.abs(self.segment_throughputs[i] - self.estimated_throughputs[i]) / self.estimated_throughputs[i] 
-        self.delta = 1 / (1 + np.exp(-self.k * (self.deviation - self.P0)))
         
         self.bitrate_constraint = (1 - self.mu) * self.estimated_throughputs[i]
         
@@ -100,21 +99,6 @@ class R2AAlgo(IR2A):
 
     def finalization(self):
         pass
-        # playback_qi = np.array(self.whiteboard.get_playback_qi())
-        # playback_pauses = np.array(self.whiteboard.get_playback_pauses())
-        # playback_buffer_size = np.array(self.whiteboard.get_playback_buffer_size())
-        
-        # statistics = [
-        #     f'Playback history >>>>>>>>>>>>\n{self.whiteboard.get_playback_history()}\n\n',
-        #     f'Playback segment size time >>>>>>>>>>>>\n{self.whiteboard.get_playback_segment_size_time_at_buffer()}\n\n',
-        #     f'Buffer >>>>>>>>>>>>\n{self.whiteboard.get_buffer()}\n\n',
-        #     f'Playback QI >>>>>>>>>>>>\n{self.whiteboard.get_playback_qi()}\n\n',
-        #     f'Playback pauses >>>>>>>>>>>>\n{self.whiteboard.get_playback_pauses()}\n\n',
-        #     f'Playback buffer size >>>>>>>>>>>>\n{self.whiteboard.get_playback_buffer_size()}\n\n'
-        # ]
-        # with open(f'{time.ctime(time.time())}', 'w') as f:
-        #     f.writelines(statistics)
-                
 
 # print("mpd info            >>>>>>", self.parsed_mpd.get_mpd_info())
 # print("period info         >>>>>>", self.parsed_mpd.get_period_info())
