@@ -1,5 +1,8 @@
 """
-@author: Gabriel R. Queiroz, ... 01/11/2024
+@author: Gabriel R. Queiroz (221020870),
+         Giovanna A. Franceschi (211043496), 
+         Wesley R. S. Lira (170072291)
+         08/09/2024
 
 @description: PyDash Project
 
@@ -66,7 +69,7 @@ class R2AAlgo(IR2A):
         if np.size(arr) > 0:
             selected = arr[-1]
 
-        msg.add_quality_id(selected)
+        msg.add_quality_id(selected) 
         self.send_down(msg)
 
     def handle_segment_size_response(self, msg):
