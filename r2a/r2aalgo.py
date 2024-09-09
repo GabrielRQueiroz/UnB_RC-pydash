@@ -6,12 +6,11 @@
 
 @description: PyDash Project
 
-An implementation example of a FIXED R2A Algorithm.
+This is an R2A algorithm that selects the best quality level for each segment based on the estimated throughput and the measured throughput of the previous segment.
+It  uses a sigmoid function to calculate the deviation between the estimated and measured throughputs 
+and then uses a bitrate constraint to select the best quality level that is less than the constraint.
+Finally, it uses a variable mu in pair with the estimated throughput to update the bitrate constraint.
 
-the quality list is obtained with the parameter of handle_xml_response() method and the choice
-is made inside of handle_segment_size_request(), before sending the message down.
-
-In this algorithm the quality choice is always the same.
 """
 import numpy as np
 from player.parser import *
